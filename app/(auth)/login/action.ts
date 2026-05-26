@@ -28,3 +28,10 @@ export async function signInWithGitHub() {
     return redirect(data.url); // Di chuyển đến trang đăng nhập của GitHub
   }
 }
+
+export async function signOut() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  await supabase.auth.signOut();
+  return redirect("/login");
+}
