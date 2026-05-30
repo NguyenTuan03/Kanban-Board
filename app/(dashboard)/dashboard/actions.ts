@@ -55,13 +55,34 @@ export async function createNewWorkspace(name: string) {
     };
   }
 
-  // Bước B: Tự động thêm người tạo làm ADMIN vào bảng workspace_members
+  // Bước B1: Truy vấn động lấy UUID của vai trò ADMIN từ bảng roles
+  const { data: role, error: roleError } = await supabase
+    .from("roles")
+    .select("id")
+    .or(`name.ilike.${WorkspaceRole.ADMIN},name.ilike.admin`)
+    .maybeSingle();
+
+  if (roleError || !role) {
+    // Rollback: Xóa workspace vừa tạo nếu lỗi truy vấn vai trò để tránh rác DB
+    try {
+      await supabase.from("workspaces").delete().eq("id", workspace.id);
+    } catch (rollbackErr) {
+      console.error("Lỗi khi rollback workspace:", rollbackErr);
+    }
+
+    return {
+      success: false,
+      message: `Không tìm thấy vai trò ADMIN trong hệ thống. Lỗi: ${roleError?.message || "Không tìm thấy vai trò phù hợp"}.`,
+    };
+  }
+
+  // Bước B2: Tự động thêm người tạo làm ADMIN vào bảng workspace_members sử dụng UUID tìm được
   const { error: memberError } = await supabase
     .from("workspace_members")
     .insert({
       workspace_id: workspace.id,
       user_id: user.id,
-      role_id: WorkspaceRole.ADMIN, // Sử dụng enum thay vì hardcode chuỗi
+      role_id: role.id,
     });
 
   if (memberError) {
