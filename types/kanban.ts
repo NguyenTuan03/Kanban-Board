@@ -16,12 +16,23 @@ export enum WorkspaceRole {
   USER = "USER",
 }
 
-export interface Task {
+export interface Column {
   id: string;
   title: string;
+  position: number;
+  workspace_id: string;
+  created_at: string;
+}
+
+export interface Task {
+  id: string;
+  column_id: string;
+  workspace_id: string;
+  title: string;
   description: string;
-  status: TaskStatus;
+  position: number;
+  assignee_id: string | null;
+  created_by: string;
   priority: TaskPriority;
   created_at: string;
-  user_id: string;
 }

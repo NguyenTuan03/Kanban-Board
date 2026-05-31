@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import KanbanBoard from "@/components/kanban/board";
-import { Task, TaskPriority, TaskStatus } from "@/types/kanban";
+import { Column, Task, TaskPriority } from "@/types/kanban";
 
 interface WorkspacePageProps {
   params: Promise<{
@@ -17,17 +17,15 @@ interface WorkspaceData {
   slug: string;
 }
 
-interface ColumnData {
-  id: string;
-  title: string;
-  position: number;
-}
-
 interface TaskData {
   id: string;
+  column_id: string;
+  workspace_id: string;
   title: string;
   description: string;
-  status: string;
+  position: number;
+  assignee_id: string | null;
+  created_by: string;
   priority: string;
   created_at: string;
 }
@@ -48,9 +46,10 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
   }
 
   let workspace: WorkspaceData | null = null;
+  let columnsList: Column[] = [];
   let tasksList: Task[] = [];
-  let hasAccess = true;
-
+  let hasAccess = false; // Mặc định là false để đảm bảo an toàn bảo mật
+ 
   try {
     // 1. Lấy thông tin chi tiết Workspace dựa theo slug
     const { data: wsData, error: wsError } = await supabase
@@ -58,38 +57,53 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
       .select("id, name, slug")
       .eq("slug", slug)
       .single();
-
+ 
     if (!wsError && wsData) {
       workspace = wsData as WorkspaceData;
-
+ 
       // 2. Kiểm tra xem người dùng hiện tại có quyền truy cập không
-      const { data: member } = await supabase
+      const { data: member, error: memberError } = await supabase
         .from("workspace_members")
         .select("role_id")
         .eq("workspace_id", workspace.id)
         .eq("user_id", user.id)
         .single();
-
-      if (!member) {
-        hasAccess = false;
-      } else {
-        // 3. Lấy danh sách tasks
+ 
+      // Chỉ cho phép truy cập khi tìm thấy bản ghi thành viên hợp lệ và không có lỗi
+      if (!memberError && member) {
+        hasAccess = true;
+ 
+        // 3. Lấy danh sách cột của Workspace
+        const { data: colsData, error: colsError } = await supabase
+          .from("columns")
+          .select("*")
+          .eq("workspace_id", workspace.id)
+          .order("position", { ascending: true });
+ 
+        if (!colsError && colsData) {
+          columnsList = colsData as unknown as Column[];
+        }
+ 
+        // 4. Lấy danh sách tasks
         const { data: tasksData, error: tasksError } = await supabase
           .from("tasks")
           .select("*")
           .eq("workspace_id", workspace.id)
           .order("position", { ascending: true });
-
+ 
         if (!tasksError && tasksData) {
-          const rawTasks = tasksData as TaskData[];
+          const rawTasks = tasksData as unknown as TaskData[];
           tasksList = rawTasks.map((t) => ({
             id: t.id,
+            column_id: t.column_id,
+            workspace_id: t.workspace_id,
             title: t.title,
             description: t.description,
-            status: t.status as TaskStatus,
+            position: t.position,
+            assignee_id: t.assignee_id,
+            created_by: t.created_by,
             priority: t.priority as TaskPriority,
             created_at: t.created_at,
-            user_id: user.id,
           }));
         }
       }
@@ -142,7 +156,12 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
 
       {/* Render Kanban Board kéo thả */}
       <div className="flex-1 flex flex-col">
-        <KanbanBoard initialTasks={tasksList} />
+        <KanbanBoard 
+          columns={columnsList} 
+          initialTasks={tasksList} 
+          workspaceId={workspace.id} 
+          currentUserId={user.id}
+        />
       </div>
     </div>
   );
