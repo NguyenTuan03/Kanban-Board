@@ -16,6 +16,11 @@ export enum WorkspaceRole {
   USER = "USER",
 }
 
+export enum Theme {
+  LIGHT = "light",
+  DARK = "dark",
+}
+
 export interface Column {
   id: string;
   title: string;
