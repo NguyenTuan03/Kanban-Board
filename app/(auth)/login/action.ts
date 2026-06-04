@@ -1,15 +1,18 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function signInWithGitHub() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  // Lấy baseUrl từ env hoặc fallback về localhost
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  // Lấy baseUrl tự động từ Request Headers của Next.js để tránh cấu hình sai biến env
+  const headersList = await headers();
+  const host = headersList.get("host");
+  const protocol = host?.includes("localhost") ? "http" : "https";
+  const baseUrl = `${protocol}://${host}`;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "github",

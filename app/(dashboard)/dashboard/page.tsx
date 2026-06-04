@@ -63,7 +63,7 @@ export default async function DashboardPage() {
  
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-white/5">
         <div>
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">
             Các không gian làm việc của bạn

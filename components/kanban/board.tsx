@@ -239,36 +239,36 @@ export default function KanbanBoard({
   return (
     <div className="flex flex-col flex-1">
       {/* Kanban Sub-Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Bảng tiến độ công việc</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Kéo thả các công việc để thay đổi trạng thái</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => setIsColModalOpen(true)}
-            className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-slate-100 font-semibold text-sm px-5 transition-all duration-200 active:scale-98 cursor-pointer bg-white dark:bg-transparent shadow-sm dark:shadow-none"
+            className="flex-1 sm:flex-initial h-11 flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-slate-100 font-semibold text-sm px-4 sm:px-5 transition-all duration-200 active:scale-98 cursor-pointer bg-white dark:bg-transparent shadow-sm dark:shadow-none"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            Thêm cột
+            <span className="truncate">Thêm cột</span>
           </button>
           <button
             onClick={openModal}
             disabled={cols.length === 0}
-            className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm px-5 transition-all duration-200 active:scale-98 cursor-pointer shadow-lg shadow-indigo-600/20"
+            className="flex-1 sm:flex-initial h-11 flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 sm:px-5 transition-all duration-200 active:scale-98 cursor-pointer shadow-lg shadow-indigo-600/20"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            Thêm công việc
+            <span className="truncate">Thêm công việc</span>
           </button>
         </div>
       </div>
  
-      {/* Grid Columns */}
-      <div className="grid grid-cols-1 md:grid-flow-col md:auto-cols-fr gap-6 flex-1 items-start">
+      {/* Scrollable Column Container */}
+      <div className="flex overflow-x-auto pb-6 gap-6 items-start -mx-4 px-4 md:mx-0 md:px-0 flex-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-white/5 scrollbar-track-transparent">
         {cols.map((column, index) => {
           const style = columnStyles[index % columnStyles.length];
           const columnTasks = tasks.filter((t) => t.column_id === column.id);
@@ -278,7 +278,7 @@ export default function KanbanBoard({
               key={column.id}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, column.id)}
-              className="flex flex-col bg-slate-100 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-white/5 p-4 min-h-[500px] transition-colors duration-200 shadow-sm"
+              className="flex flex-col w-[290px] sm:w-[320px] shrink-0 bg-slate-100 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-white/5 p-4 min-h-[500px] transition-colors duration-200 shadow-sm"
             >
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-200 dark:border-white/5">

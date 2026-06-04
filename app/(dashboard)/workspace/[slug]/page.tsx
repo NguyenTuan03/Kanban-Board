@@ -143,12 +143,12 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
   return (
     <div className="flex flex-col flex-1 space-y-6">
       {/* Workspace Header Info */}
-      <div className="pb-4 border-b border-white/5 flex items-center justify-between">
+      <div className="pb-4 border-b border-slate-200 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">
             Không gian làm việc
           </span>
-          <h2 className="text-2xl font-black text-slate-100 flex items-center gap-3">
+          <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
             {workspace.name}
           </h2>
         </div>
