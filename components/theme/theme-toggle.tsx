@@ -8,14 +8,14 @@ export default function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Trì hoãn việc gọi setState bằng requestAnimationFrame để tránh cascading renders đồng bộ
-    const frameId = requestAnimationFrame(() => {
+    // Sử dụng setTimeout(..., 0) để dời cập nhật state sang macro-task tiếp theo, tránh cascading renders đồng bộ và đảm bảo chạy ổn định
+    const timer = setTimeout(() => {
       setMounted(true);
       const isDark = document.documentElement.classList.contains("dark");
       setTheme(isDark ? Theme.DARK : Theme.LIGHT);
-    });
+    }, 0);
 
-    return () => cancelAnimationFrame(frameId);
+    return () => clearTimeout(timer);
   }, []);
 
   const toggleTheme = () => {
