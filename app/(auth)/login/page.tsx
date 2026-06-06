@@ -1,5 +1,6 @@
 import React from "react";
 import { signInWithGitHub } from "./action";
+import ThemeToggle from "@/components/theme/theme-toggle";
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -10,17 +11,18 @@ export default async function LoginPage({ searchParams }: PageProps) {
   const error = resolvedParams.error;
 
   return (
-    <div className="min-h-screen bg-linear-to-tr from-slate-900 via-indigo-950 to-slate-950 text-slate-100 flex items-center justify-center p-6 font-sans">
-      {/* Background Glows */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="relative min-h-screen bg-background text-foreground flex items-center justify-center p-6 font-sans transition-colors duration-300 overflow-hidden">
+      {/* Theme Toggle ở góc trên bên phải */}
+      <div className="absolute top-6 right-6">
+        <ThemeToggle />
+      </div>
 
-      <main className="relative w-full max-w-md bg-white/5 dark:bg-slate-900/40 backdrop-blur-xl rounded-3xl border border-white/10 p-8 shadow-2xl transition-all duration-300 hover:border-indigo-500/30">
+      <main className="relative w-full max-w-sm bg-background border border-border-muted rounded-xl p-8 shadow-none transition-all duration-300">
         {/* Brand/Logo Area */}
-        <div className="text-center mb-8">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-tr from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30 text-white mb-4">
+        <div className="text-left mb-10">
+          <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-foreground text-background mb-6 shadow-none">
             <svg
-              className="h-7 w-7"
+              className="h-5 w-5"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -29,23 +31,27 @@ export default async function LoginPage({ searchParams }: PageProps) {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"
               />
             </svg>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Kanban Board
+          
+          <h1 className="text-4xl tracking-tight leading-none italic font-normal font-serif">
+            Kanban Flow
           </h1>
-          <p className="text-sm text-slate-400 mt-2">
-            Đăng nhập để quản lý công việc và dự án của bạn
+          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-550 mt-3 block">
+            WORKSPACE MANAGEMENT SYSTEM
+          </span>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-4 leading-relaxed max-w-[28ch]">
+            Hệ thống tối giản giúp tổ chức công việc và theo dõi tiến độ dự án của bạn hiệu quả.
           </p>
         </div>
 
         {/* Error Notification */}
         {error && (
-          <div className="mb-6 flex items-start gap-3 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-sm">
+          <div className="mb-6 flex items-start gap-3 p-4 bg-rose-500/5 border border-rose-500/10 rounded-lg text-rose-600 dark:text-rose-400 text-xs">
             <svg
-              className="h-5 w-5 shrink-0 mt-0.5"
+              className="h-4.5 w-4.5 shrink-0 mt-0.5 text-rose-500"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -58,11 +64,11 @@ export default async function LoginPage({ searchParams }: PageProps) {
               />
             </svg>
             <div>
-              <p className="font-semibold text-rose-300">Đăng nhập thất bại</p>
-              <p className="text-xs text-rose-400/80 mt-1">
+              <p className="font-semibold text-rose-700 dark:text-rose-350">Lỗi xác thực</p>
+              <p className="text-zinc-450 dark:text-rose-400/80 mt-1 leading-normal">
                 {error === "auth-code-error"
-                  ? "Không thể xác thực mã code từ nhà cung cấp dịch vụ."
-                  : "Có lỗi xảy ra trong quá trình đăng nhập qua GitHub."}
+                  ? "Không thể xác thực mã từ dịch vụ."
+                  : "Có lỗi xảy ra trong quá trình kết nối với GitHub."}
               </p>
             </div>
           </div>
@@ -72,10 +78,10 @@ export default async function LoginPage({ searchParams }: PageProps) {
         <form action={signInWithGitHub} className="space-y-4">
           <button
             type="submit"
-            className="w-full flex h-13 items-center justify-center gap-3 rounded-2xl bg-white text-slate-900 font-semibold text-base transition-all duration-300 hover:bg-slate-100 hover:shadow-lg hover:shadow-white/10 active:scale-98 cursor-pointer"
+            className="w-full flex h-10 items-center justify-center gap-2.5 rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold text-xs transition-all duration-200 active:scale-[0.98] cursor-pointer shadow-none"
           >
             {/* GitHub SVG Icon */}
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="h-4.5 w-4.5" fill="currentColor" viewBox="0 0 24 24">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -87,7 +93,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </form>
 
         {/* Footer Area */}
-        <footer className="mt-8 text-center text-xs text-slate-500">
+        <footer className="mt-10 text-left text-[9px] text-zinc-400 dark:text-zinc-500 leading-relaxed max-w-[28ch] font-mono">
           Bằng việc tiếp tục, bạn đồng ý với các điều khoản dịch vụ và chính sách bảo mật của chúng tôi.
         </footer>
       </main>

@@ -3,25 +3,35 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f8fafc; /* slate-50 */
-  --foreground: #0f172a; /* slate-900 */
+  --background: #fbfbfa; /* Warm Bone */
+  --foreground: #111111; /* Off-black/Charcoal */
+  --border-muted: #eaeaea; /* Ultra-light gray */
+  --accent: #4f46e5; /* Contrast Indigo */
+  --font-serif-editorial: 'Newsreader', 'Playfair Display', 'Instrument Serif', Georgia, serif;
 }
 
 .dark {
-  --background: #020617; /* slate-950 */
-  --foreground: #f1f5f9; /* slate-100 */
+  --background: #111111; /* Off-black/Charcoal */
+  --foreground: #fbfbfa; /* Warm Bone */
+  --border-muted: #222222; /* Dark border */
+  --accent: #818cf8; /* Light Indigo */
 }
 
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-border-muted: var(--border-muted);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans), -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  --font-serif: var(--font-serif-editorial), serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
 }
+

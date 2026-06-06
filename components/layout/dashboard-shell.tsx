@@ -39,32 +39,32 @@ export default function DashboardShell({
   const avatarLetter = user.email ? user.email.charAt(0).toUpperCase() : "U";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-background text-foreground flex font-sans transition-colors duration-300">
       {/* Backdrop mờ trên Mobile */}
       {isSidebarOpen && (
         <div
           onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden transition-opacity duration-300 animate-in fade-in"
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs lg:hidden transition-opacity duration-300 animate-in fade-in"
         />
       )}
 
       {/* Sidebar bên trái */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-slate-100 dark:bg-slate-950 border-r border-slate-200 dark:border-white/5 flex flex-col shrink-0 transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border-muted flex flex-col shrink-0 transition-transform duration-300 ease-in-out
           lg:static lg:translate-x-0
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         {/* Logo Area */}
-        <div className="h-18 flex items-center justify-between px-6 border-b border-slate-200 dark:border-white/5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-tr from-indigo-500 to-purple-600 text-white font-bold shadow-md shadow-indigo-500/20">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-border-muted">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded bg-foreground text-background font-bold shadow-none text-xs">
               <svg
-                className="h-4.5 w-4.5"
+                className="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.5"
+                strokeWidth="2"
                 viewBox="0 0 24 24"
               >
                 <path
@@ -74,7 +74,7 @@ export default function DashboardShell({
                 />
               </svg>
             </div>
-            <span className="font-extrabold text-sm tracking-widest bg-linear-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent uppercase">
+            <span className="font-bold text-[10px] tracking-widest text-foreground uppercase font-mono">
               Kanban Flow
             </span>
           </div>
@@ -82,28 +82,28 @@ export default function DashboardShell({
           {/* Nút đóng Sidebar trên mobile */}
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden p-1.5 rounded-xl text-slate-500 hover:bg-slate-200 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            className="lg:hidden p-1.5 rounded text-zinc-500 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer"
             aria-label="Đóng menu"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Sidebar Nav */}
-        <nav className="flex-1 py-6 px-4 space-y-7 overflow-y-auto">
+        <nav className="flex-1 py-6 space-y-6 overflow-y-auto">
           {/* Main Menu */}
           <div className="space-y-1">
             <Link
               href="/dashboard"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center gap-3 py-2 transition-all duration-200 text-xs font-semibold border-l-2 ${
                 pathname === "/dashboard"
-                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-white/5"
+                  ? "text-foreground border-accent pl-5 bg-zinc-150/10 dark:bg-zinc-900/20"
+                  : "text-zinc-500 hover:text-foreground border-transparent pl-5 hover:bg-zinc-150/5 dark:hover:bg-zinc-900/10"
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
               </svg>
               Tổng quan
@@ -112,7 +112,7 @@ export default function DashboardShell({
 
           {/* Workspaces List */}
           <div className="space-y-2">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-4">
+            <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block px-6 font-mono">
               Không gian làm việc
             </span>
             <div className="space-y-1">
@@ -122,16 +122,16 @@ export default function DashboardShell({
                   <Link
                     key={ws.id}
                     href={`/workspace/${ws.slug}`}
-                    className={`flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    className={`flex items-center gap-3 py-2 transition-all duration-200 text-xs font-semibold border-l-2 ${
                       isActive
-                        ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-white/5"
+                        ? "text-foreground border-accent pl-5 bg-zinc-150/10 dark:bg-zinc-900/20"
+                        : "text-zinc-500 hover:text-foreground border-transparent pl-5 hover:bg-zinc-150/5 dark:hover:bg-zinc-900/10"
                     }`}
                   >
-                    <span className={`flex h-5 w-5 items-center justify-center rounded-md text-xs font-bold font-mono border transition-colors ${
+                    <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded text-[9px] font-bold font-mono border transition-colors ${
                       isActive
-                        ? "bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 border-indigo-300 dark:border-indigo-500/30"
-                        : "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/10"
+                        ? "bg-foreground text-background border-transparent"
+                        : "bg-background text-zinc-500 border-border-muted"
                     }`}>
                       {ws.name.charAt(0).toUpperCase()}
                     </span>
@@ -147,22 +147,22 @@ export default function DashboardShell({
       {/* Cột nội dung bên phải */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-18 border-b border-slate-200 dark:border-white/5 bg-slate-50/60 dark:bg-slate-950/60 backdrop-blur-md flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 transition-colors duration-200">
+        <header className="h-16 border-b border-border-muted bg-background flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 transition-all duration-300">
           <div className="flex items-center">
             {/* Nút Hamburger Menu trên Mobile */}
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 -ml-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-white/5 transition-colors cursor-pointer mr-3"
+              className="lg:hidden p-2 -ml-2 rounded text-foreground hover:bg-zinc-100/50 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer mr-3"
               aria-label="Mở menu"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             </button>
 
-            {/* Title Context */}
-            <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[150px] sm:max-w-none">
-              Dự án & Không gian làm việc
+            {/* Breadcrumb style text */}
+            <div className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 tracking-wider uppercase">
+              Dự án / Workspace
             </div>
           </div>
 
@@ -171,11 +171,11 @@ export default function DashboardShell({
             {/* Nút chuyển đổi Theme */}
             <ThemeToggle />
 
-            <div className="flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-1.5 bg-slate-200/50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 max-w-[180px] sm:max-w-none">
-              <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shadow-sm font-mono shrink-0">
+            <div className="flex items-center gap-2 sm:gap-2.5 px-2.5 py-1.5 bg-background rounded-lg border border-border-muted max-w-[180px] sm:max-w-none">
+              <div className="h-5 w-5 rounded bg-foreground flex items-center justify-center text-[9px] font-bold text-background font-mono shrink-0">
                 {avatarLetter}
               </div>
-              <span className="hidden md:inline text-xs font-medium text-slate-700 dark:text-slate-300 truncate max-w-[100px] sm:max-w-none">
+              <span className="hidden md:inline text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate max-w-[100px] sm:max-w-none">
                 {user.email}
               </span>
             </div>
@@ -184,7 +184,7 @@ export default function DashboardShell({
             <form action={signOutAction}>
               <button
                 type="submit"
-                className="flex h-9 items-center justify-center rounded-xl bg-slate-200/50 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-300 font-semibold text-xs px-3 sm:px-4 transition-all duration-200 cursor-pointer"
+                className="flex h-7 items-center justify-center rounded border border-border-muted hover:border-rose-500/20 hover:bg-rose-500/5 hover:text-rose-600 dark:hover:text-rose-400 text-zinc-500 dark:text-zinc-400 font-semibold text-xs px-2.5 transition-all duration-200 cursor-pointer active:scale-95"
               >
                 Đăng xuất
               </button>
@@ -193,7 +193,7 @@ export default function DashboardShell({
         </header>
 
         {/* Content Viewport */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto relative bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto relative bg-background text-foreground transition-colors duration-300">
           {children}
         </main>
       </div>
