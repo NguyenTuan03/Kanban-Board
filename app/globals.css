@@ -35,3 +35,31 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-muted);
+  border-radius: 9999px;
+  border: 1.5px solid var(--background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: currentColor;
+  opacity: 0.3;
+}
+
+/* Firefox Support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-muted) transparent;
+}
+
+

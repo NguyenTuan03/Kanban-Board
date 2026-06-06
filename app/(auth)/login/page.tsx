@@ -93,7 +93,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </form>
 
         {/* Footer Area */}
-        <footer className="mt-10 text-left text-[9px] text-zinc-400 dark:text-zinc-500 leading-relaxed max-w-[28ch] font-mono">
+        <footer className="mt-10 text-left text-[9px] text-zinc-400 dark:text-zinc-500 leading-relaxed max-w-[34ch] font-mono">
           Bằng việc tiếp tục, bạn đồng ý với các điều khoản dịch vụ và chính sách bảo mật của chúng tôi.
         </footer>
       </main>

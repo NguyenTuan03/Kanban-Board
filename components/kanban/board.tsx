@@ -270,7 +270,7 @@ export default function KanbanBoard({
       </div>
  
       {/* Scrollable Column Container */}
-      <div className="flex overflow-x-auto pb-6 gap-6 items-start -mx-4 px-4 md:mx-0 md:px-0 flex-1 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-850 scrollbar-track-transparent">
+      <div className="flex overflow-x-auto pb-6 gap-6 items-start -mx-4 px-4 md:-mx-8 md:px-8 flex-1">
         {cols.map((column, index) => {
           const style = columnStyles[index % columnStyles.length];
           const columnTasks = tasks.filter((t) => t.column_id === column.id);
@@ -343,11 +343,8 @@ export default function KanbanBoard({
                 ))}
  
                 {columnTasks.length === 0 && (
-                  <div className="flex flex-col items-center justify-center flex-1 py-12 text-center text-zinc-400 dark:text-zinc-650 border border-dashed border-border-muted rounded-xl">
-                    <svg className="w-6 h-6 mb-2 opacity-30" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-6 3h6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                    </svg>
-                    <span className="text-[9px] font-mono uppercase tracking-wider">Kéo thả vào đây</span>
+                  <div className="flex flex-col items-center justify-center flex-1 py-12 text-center text-zinc-450 dark:text-zinc-550 border border-dashed border-border-muted rounded-xl bg-zinc-50/20 dark:bg-zinc-900/5 hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-all duration-250">
+                    <span className="text-[8px] font-mono uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Kéo thả vào đây</span>
                   </div>
                 )}
               </div>

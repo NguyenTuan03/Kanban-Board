@@ -193,7 +193,7 @@ export default function DashboardShell({
         </header>
 
         {/* Content Viewport */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto relative bg-background text-foreground transition-colors duration-300">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto overflow-x-hidden relative bg-background text-foreground transition-colors duration-300 min-w-0 w-full flex flex-col">
           {children}
         </main>
       </div>
