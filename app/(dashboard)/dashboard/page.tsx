@@ -1,8 +1,8 @@
 import React from "react";
 import { cookies } from "next/headers";
-import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import CreateWorkspaceDialog from "@/components/dashboard/create-workspace-dialog";
+import WorkspaceCard from "@/components/dashboard/workspace-card";
  
 interface WorkspaceItem {
   id: string;
@@ -10,13 +10,18 @@ interface WorkspaceItem {
   slug: string;
   description?: string;
   created_at?: string;
+  isAdmin?: boolean;
 }
  
 interface WorkspaceMemberResponse {
+  role: {
+    name: string;
+  } | null;
   workspaces: {
     id: string;
     name: string;
     slug: string;
+    created_by: string;
   } | null;
 }
  
@@ -39,26 +44,43 @@ export default async function DashboardPage() {
     const { data, error } = await supabase
       .from("workspace_members")
       .select(`
+        role:roles (
+          name
+        ),
         workspaces (
           id,
           name,
-          slug
+          slug,
+          created_by
         )
       `)
       .eq("user_id", user.id);
  
+    if (error) {
+      console.error("Lỗi khi lấy danh sách workspaces:", error);
+    }
+ 
     if (!error && data) {
       const rawData = data as unknown as WorkspaceMemberResponse[];
       workspaces = rawData
-        .map((item) => item.workspaces)
-        .filter((ws): ws is WorkspaceItem => ws !== null)
-        .map((ws) => ({
-          ...ws,
-          description: "Không gian quản lý tiến độ công việc Kanban của dự án.",
-        }));
+        .filter((item): item is WorkspaceMemberResponse & { workspaces: NonNullable<WorkspaceMemberResponse["workspaces"]> } => 
+          item.workspaces !== null
+        )
+        .map((item) => {
+          const ws = item.workspaces;
+          const roleName = item.role?.name?.toUpperCase();
+          const isAdmin = roleName === "ADMIN" || ws.created_by === user.id;
+          return {
+            id: ws.id,
+            name: ws.name,
+            slug: ws.slug,
+            description: "Không gian quản lý tiến độ công việc Kanban của dự án.",
+            isAdmin,
+          };
+        });
     }
   } catch (err) {
-    console.error("Lỗi khi lấy danh sách workspaces:", err);
+    console.error("Exception khi lấy danh sách workspaces:", err);
   }
  
   return (
@@ -82,52 +104,7 @@ export default async function DashboardPage() {
           {workspaces.map((ws, index) => {
             const isFeatured = index === 0;
             return (
-              <Link
-                key={ws.id}
-                href={`/workspace/${ws.slug}`}
-                className={`group bg-background border border-border-muted hover:border-zinc-400 dark:hover:border-zinc-700 rounded-xl p-6 shadow-none transition-all duration-250 text-left flex flex-col justify-between ${
-                  isFeatured 
-                    ? "md:col-span-2 min-h-[190px] bg-zinc-50/50 dark:bg-zinc-900/10 border-accent/20 hover:border-accent/40" 
-                    : "min-h-[170px]"
-                }`}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-background text-foreground text-xs font-bold font-mono border border-border-muted">
-                      {ws.name.charAt(0).toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-xs text-foreground group-hover:text-accent transition-colors truncate">
-                        {ws.name}
-                      </h4>
-                      <span className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 block mt-0.5 truncate">
-                        slug: {ws.slug}
-                      </span>
-                    </div>
-                  </div>
-  
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2 max-w-[50ch]">
-                    {ws.description}
-                  </p>
-                </div>
-  
-                <div className="mt-4 pt-3 border-t border-border-muted flex items-center justify-between text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 group-hover:text-accent transition-colors">
-                  <span className="font-mono uppercase tracking-wider">Mở bảng công việc</span>
-                  <svg
-                    className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                    />
-                  </svg>
-                </div>
-              </Link>
+              <WorkspaceCard key={ws.id} ws={ws} isFeatured={isFeatured} />
             );
           })}
         </div>

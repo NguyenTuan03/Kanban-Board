@@ -13,33 +13,33 @@ interface KanbanBoardProps {
  
 const columnStyles = [
   {
-    colorClass: "border-border-muted bg-background",
-    badgeColor: "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border border-border-muted",
+    colorClass: "border-black/5 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/20",
+    badgeColor: "bg-zinc-200/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-300 border-transparent",
     dotColor: "bg-zinc-400 dark:bg-zinc-500",
   },
   {
-    colorClass: "border-border-muted bg-background",
-    badgeColor: "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200/30 dark:border-amber-950/20",
+    colorClass: "border-amber-500/10 dark:border-amber-500/5 bg-amber-50/30 dark:bg-amber-950/10",
+    badgeColor: "bg-amber-100/50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-transparent",
     dotColor: "bg-amber-500",
   },
   {
-    colorClass: "border-border-muted bg-background",
-    badgeColor: "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200/30 dark:border-indigo-950/20",
+    colorClass: "border-indigo-500/10 dark:border-indigo-500/5 bg-indigo-50/30 dark:bg-indigo-950/10",
+    badgeColor: "bg-indigo-100/50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-transparent",
     dotColor: "bg-indigo-500",
   },
   {
-    colorClass: "border-border-muted bg-background",
-    badgeColor: "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200/30 dark:border-emerald-950/20",
+    colorClass: "border-emerald-500/10 dark:border-emerald-500/5 bg-emerald-50/30 dark:bg-emerald-950/10",
+    badgeColor: "bg-emerald-100/50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-transparent",
     dotColor: "bg-emerald-500",
   },
   {
-    colorClass: "border-border-muted bg-background",
-    badgeColor: "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border border-rose-200/30 dark:border-rose-950/20",
+    colorClass: "border-rose-500/10 dark:border-rose-500/5 bg-rose-50/30 dark:bg-rose-950/10",
+    badgeColor: "bg-rose-100/50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-transparent",
     dotColor: "bg-rose-500",
   },
   {
-    colorClass: "border-border-muted bg-background",
-    badgeColor: "bg-violet-50 dark:bg-violet-950/20 text-violet-700 dark:text-violet-400 border border-violet-200/30 dark:border-violet-950/20",
+    colorClass: "border-violet-500/10 dark:border-violet-500/5 bg-violet-50/30 dark:bg-violet-950/10",
+    badgeColor: "bg-violet-100/50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 border-transparent",
     dotColor: "bg-violet-500",
   },
 ];
@@ -58,12 +58,15 @@ export default function KanbanBoard({
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
  
   // Form states cho Task
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newPriority, setNewPriority] = useState<TaskPriority>(TaskPriority.LOW);
   const [newColumnId, setNewColumnId] = useState<string>("");
  
   // Form states cho Column
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+  const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
   const [newColTitle, setNewColTitle] = useState("");
  
   // Drag & Drop handlers
@@ -106,14 +109,52 @@ export default function KanbanBoard({
     }
   };
  
-  // Add & Delete task handlers
-  const handleAddTask = async (e: React.FormEvent) => {
+  // Add & Edit task handlers
+  const handleSubmitTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
  
     const activeColumnId = newColumnId || (cols[0]?.id || "");
     if (!activeColumnId) return;
- 
+    if (editingTaskId) {
+      // Optimistic update
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === editingTaskId
+            ? {
+                ...t,
+                title: newTitle.trim(),
+                description: newDescription.trim(),
+                priority: newPriority,
+                column_id: activeColumnId,
+              }
+            : t
+        )
+      );
+
+      setIsModalOpen(false);
+      setEditingTaskId(null);
+
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          title: newTitle.trim(),
+          description: newDescription.trim(),
+          priority: newPriority,
+          column_id: activeColumnId,
+        })
+        .eq("id", editingTaskId);
+
+      if (error) {
+        console.error("Lỗi khi cập nhật nhiệm vụ:", error.message);
+        alert(`Không thể cập nhật nhiệm vụ: ${error.message}`);
+      }
+
+      setNewTitle("");
+      setNewDescription("");
+      setNewPriority(TaskPriority.LOW);
+      return;
+    }
     const columnTasks = tasks.filter((t) => t.column_id === activeColumnId);
     const maxPosition = columnTasks.reduce((max, t) => t.position > max ? t.position : max, -1);
     const position = maxPosition + 1;
@@ -153,11 +194,31 @@ export default function KanbanBoard({
     }
   };
  
-  // Create Column handler
-  const handleCreateColumn = async (e: React.FormEvent) => {
+  // Column handlers
+  const handleSubmitColumn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newColTitle.trim()) return;
- 
+    if (editingColumnId) {
+      setCols((prev) =>
+        prev.map((c) =>
+          c.id === editingColumnId ? { ...c, title: newColTitle.trim() } : c
+        )
+      );
+      setIsColModalOpen(false);
+      setEditingColumnId(null);
+
+      const { error } = await supabase
+        .from("columns")
+        .update({ title: newColTitle.trim() })
+        .eq("id", editingColumnId);
+
+      if (error) {
+        console.error("Lỗi khi cập nhật cột:", error.message);
+        alert(`Không thể cập nhật cột: ${error.message}`);
+      }
+      setNewColTitle("");
+      return;
+    }
     const position = cols.length;
  
     const newColId = crypto.randomUUID();
@@ -190,7 +251,24 @@ export default function KanbanBoard({
       }
     }
   };
- 
+  const confirmDeleteColumn = async () => {
+    if (!columnToDelete) return;
+    
+    const id = columnToDelete.id;
+    setCols((prev) => prev.filter((c) => c.id !== id));
+    setTasks((prev) => prev.filter((t) => t.column_id !== id));
+    setColumnToDelete(null);
+
+    const { error } = await supabase
+      .from("columns")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Lỗi khi xóa cột:", error.message);
+      alert(`Lỗi khi xóa cột: ${error.message}`);
+    }
+  };
   const handleDeleteTask = async (id: string) => {
     // Optimistic UI update
     setTasks((prev) => prev.filter((task) => task.id !== id));
@@ -233,13 +311,38 @@ export default function KanbanBoard({
     if (cols.length > 0 && !newColumnId) {
       setNewColumnId(cols[0].id);
     }
+    setEditingTaskId(null);
+    setNewTitle("");
+    setNewDescription("");
+    setNewPriority(TaskPriority.LOW);
     setIsModalOpen(true);
+  };
+ 
+  const openEditTaskModal = (task: Task) => {
+    setEditingTaskId(task.id);
+    setNewTitle(task.title);
+    setNewDescription(task.description || "");
+    setNewPriority(task.priority);
+    setNewColumnId(task.column_id);
+    setIsModalOpen(true);
+  };
+
+  const openColModal = () => {
+    setEditingColumnId(null);
+    setNewColTitle("");
+    setIsColModalOpen(true);
+  };
+
+  const openEditColModal = (col: Column) => {
+    setEditingColumnId(col.id);
+    setNewColTitle(col.title);
+    setIsColModalOpen(true);
   };
  
   return (
     <div className="flex flex-col flex-1">
       {/* Kanban Sub-Header */}
-      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-4 mb-10 pb-6 border-b border-border-muted">
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-4 mb-10 pb-6 border-b border-black/5 dark:border-white/5">
         <div>
           <h2 className="text-3xl font-normal font-serif tracking-tight leading-none italic">Bảng tiến độ công việc</h2>
           <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-550 block mt-2.5">
@@ -248,8 +351,8 @@ export default function KanbanBoard({
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button
-            onClick={() => setIsColModalOpen(true)}
-            className="flex-1 sm:flex-initial h-9 flex items-center justify-center gap-2 rounded-lg border border-border-muted hover:bg-zinc-100/50 dark:hover:bg-zinc-900/40 text-zinc-600 dark:text-zinc-350 font-semibold text-xs px-4 transition-all duration-200 active:scale-[0.98] cursor-pointer bg-background"
+            onClick={openColModal}
+            className="flex-1 sm:flex-initial h-9 flex items-center justify-center gap-2 rounded-lg border border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 text-zinc-600 dark:text-zinc-350 font-semibold text-xs px-4 transition-all duration-200 active:scale-[0.98] cursor-pointer bg-background"
           >
             <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -280,19 +383,41 @@ export default function KanbanBoard({
               key={column.id}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, column.id)}
-              className={`flex flex-col w-[290px] sm:w-[320px] shrink-0 border rounded-xl p-4 min-h-[500px] transition-all duration-300 ${style.colorClass}`}
+              className={`group/col flex flex-col w-[290px] sm:w-[320px] shrink-0 border rounded-xl p-4 min-h-[500px] transition-all duration-300 ${style.colorClass}`}
             >
               {/* Column Header */}
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-muted">
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-black/5 dark:border-white/5">
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${style.dotColor}`} />
                   <span className="font-bold text-zinc-700 dark:text-zinc-200 text-xs tracking-wide truncate max-w-[180px]">
                     {column.title}
                   </span>
                 </div>
-                <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded ${style.badgeColor}`}>
-                  {columnTasks.length}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded ${style.badgeColor}`}>
+                    {columnTasks.length}
+                  </span>
+                  <div className="flex opacity-0 group-hover/col:opacity-100 transition-opacity gap-1">
+                    <button
+                      onClick={() => openEditColModal(column)}
+                      className="text-zinc-400 hover:text-accent p-1 rounded-md cursor-pointer"
+                      title="Sửa cột"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.83 19.13a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setColumnToDelete(column)}
+                      className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded-md cursor-pointer"
+                      title="Xóa cột"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
  
               {/* Cards Container */}
@@ -303,20 +428,31 @@ export default function KanbanBoard({
                     draggable
                     onDragStart={(e) => handleDragStart(e, task.id)}
                     onDragEnd={handleDragEnd}
-                    className="group bg-background hover:bg-zinc-50/20 dark:hover:bg-zinc-900/10 border border-border-muted hover:border-zinc-450 dark:hover:border-zinc-700 rounded-xl p-4 shadow-none hover:shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-200 cursor-grab active:cursor-grabbing relative"
+                    className="group bg-background dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10 rounded-xl p-4 shadow-xs hover:shadow-sm transition-all duration-200 cursor-grab active:cursor-grabbing relative"
                   >
                     {/* Priority Badge */}
                     <div className="mb-3 flex items-center justify-between">
                       {getPriorityBadge(task.priority)}
-                      <button
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-600 dark:text-zinc-550 dark:hover:text-rose-400 p-1 rounded transition-opacity duration-200 cursor-pointer"
-                        title="Xóa công việc"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity duration-200">
+                        <button
+                          onClick={() => openEditTaskModal(task)}
+                          className="text-zinc-400 hover:text-accent dark:hover:text-accent p-1 rounded cursor-pointer transition-colors"
+                          title="Sửa công việc"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.83 19.13a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded transition-colors cursor-pointer"
+                          title="Xóa công việc"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
  
                     {/* Card Title */}
@@ -330,7 +466,7 @@ export default function KanbanBoard({
                     </p>
  
                     {/* Card Footer */}
-                    <div className="flex items-center justify-between pt-2 border-t border-border-muted text-[8px] text-zinc-400 dark:text-zinc-550 font-mono">
+                    <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5 text-[8px] text-zinc-400 dark:text-zinc-550 font-mono">
                       <span className="truncate max-w-[80px]">{task.id}</span>
                       <span>
                         {task.created_at ? new Date(task.created_at).toLocaleDateString("vi-VN", {
@@ -343,7 +479,7 @@ export default function KanbanBoard({
                 ))}
  
                 {columnTasks.length === 0 && (
-                  <div className="flex flex-col items-center justify-center flex-1 py-12 text-center text-zinc-450 dark:text-zinc-550 border border-dashed border-border-muted rounded-xl bg-zinc-50/20 dark:bg-zinc-900/5 hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-all duration-250">
+                  <div className="flex flex-col items-center justify-center flex-1 py-12 text-center text-zinc-450 dark:text-zinc-550 border border-dashed border-black/10 dark:border-white/10 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all duration-250">
                     <span className="text-[8px] font-mono uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Kéo thả vào đây</span>
                   </div>
                 )}
@@ -352,7 +488,7 @@ export default function KanbanBoard({
           );
         })}
         {cols.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center py-20 w-full text-center text-zinc-400 dark:text-zinc-600 bg-background border border-dashed border-border-muted rounded-xl">
+          <div className="col-span-full flex flex-col items-center justify-center py-20 w-full text-center text-zinc-400 dark:text-zinc-600 bg-background border border-dashed border-black/10 dark:border-white/10 rounded-xl">
             <svg className="w-10 h-10 mb-4 opacity-20 text-zinc-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
             </svg>
@@ -367,7 +503,9 @@ export default function KanbanBoard({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-xs">
           <div className="w-full max-w-sm bg-background border border-border-muted rounded-xl p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-sm font-bold text-foreground">Thêm công việc mới</h3>
+              <h3 className="text-sm font-bold text-foreground">
+                {editingTaskId ? "Sửa công việc" : "Thêm công việc mới"}
+              </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 cursor-pointer transition-colors"
@@ -378,7 +516,7 @@ export default function KanbanBoard({
               </button>
             </div>
  
-            <form onSubmit={handleAddTask} className="space-y-4">
+            <form onSubmit={handleSubmitTask} className="space-y-4">
               <div>
                 <label className="block text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5 font-mono">
                   Tiêu đề
@@ -452,7 +590,7 @@ export default function KanbanBoard({
                   type="submit"
                   className="flex-1 h-9 bg-foreground text-background hover:bg-foreground/90 font-semibold text-xs rounded-lg cursor-pointer transition-colors"
                 >
-                  Tạo công việc
+                  {editingTaskId ? "Cập nhật" : "Tạo công việc"}
                 </button>
               </div>
             </form>
@@ -460,12 +598,14 @@ export default function KanbanBoard({
         </div>
       )}
  
-      {/* Modal - Create Column */}
+      {/* Modal - Create/Edit Column */}
       {isColModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-xs">
           <div className="w-full max-w-sm bg-background border border-border-muted rounded-xl p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-sm font-bold text-foreground">Thêm cột mới</h3>
+              <h3 className="text-sm font-bold text-foreground">
+                {editingColumnId ? "Sửa cột" : "Thêm cột mới"}
+              </h3>
               <button
                 onClick={() => setIsColModalOpen(false)}
                 className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 cursor-pointer transition-colors"
@@ -476,7 +616,7 @@ export default function KanbanBoard({
               </button>
             </div>
  
-            <form onSubmit={handleCreateColumn} className="space-y-4">
+            <form onSubmit={handleSubmitColumn} className="space-y-4">
               <div>
                 <label className="block text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5 font-mono">
                   Tên cột
@@ -503,10 +643,43 @@ export default function KanbanBoard({
                   type="submit"
                   className="flex-1 h-9 bg-foreground text-background hover:bg-foreground/90 font-semibold text-xs rounded-lg cursor-pointer transition-colors"
                 >
-                  Tạo cột
+                  {editingColumnId ? "Cập nhật" : "Tạo cột"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal - Confirm Delete Column */}
+      {columnToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-rose-100 dark:bg-rose-900/30 mb-4">
+              <svg className="h-6 w-6 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">
+              Xóa cột
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+              Bạn có chắc chắn muốn xóa cột <span className="font-bold text-slate-800 dark:text-slate-200">&quot;{columnToDelete.title}&quot;</span> không? Toàn bộ công việc trong cột cũng sẽ bị xóa. Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setColumnToDelete(null)}
+                className="flex-1 h-11 border border-slate-200 dark:border-white/10 rounded-xl text-slate-600 dark:text-slate-300 font-semibold text-sm hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer transition-colors bg-white dark:bg-transparent shadow-sm dark:shadow-none"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={confirmDeleteColumn}
+                className="flex-1 h-11 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm rounded-xl cursor-pointer shadow-lg shadow-rose-600/20 transition-colors"
+              >
+                Xóa cột
+              </button>
+            </div>
           </div>
         </div>
       )}
