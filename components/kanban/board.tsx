@@ -1,16 +1,37 @@
 "use client";
- 
-import React, { useState } from "react";
+
+import React, { useState, useMemo } from "react";
 import { Column, Task, TaskPriority } from "@/types/kanban";
 import { createClient } from "@/utils/supabase/client";
- 
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragOverEvent,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortableColumn } from "./sortable-column";
+import { SortableTask } from "./sortable-task";
+
 interface KanbanBoardProps {
   columns: Column[];
   initialTasks?: Task[];
   workspaceId: string;
   currentUserId: string;
 }
- 
+
 const columnStyles = [
   {
     colorClass: "border-black/5 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/20",
@@ -43,7 +64,7 @@ const columnStyles = [
     dotColor: "bg-violet-500",
   },
 ];
- 
+
 export default function KanbanBoard({ 
   columns = [], 
   initialTasks = [], 
@@ -53,9 +74,15 @@ export default function KanbanBoard({
   const supabase = createClient();
   const [cols, setCols] = useState<Column[]>(columns);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [originalTasks, setOriginalTasks] = useState<Task[] | null>(null);
+
+  const columnsId = useMemo(() => cols.map((col) => col.id), [cols]);
+
+  const [activeColumn, setActiveColumn] = useState<Column | null>(null);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isColModalOpen, setIsColModalOpen] = useState(false);
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
  
   // Form states cho Task
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -68,46 +95,130 @@ export default function KanbanBoard({
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
   const [newColTitle, setNewColTitle] = useState("");
- 
-  // Drag & Drop handlers
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    setDraggedTaskId(id);
-    e.dataTransfer.setData("text/plain", id);
-    e.currentTarget.classList.add("opacity-50");
-  };
- 
-  const handleDragEnd = (e: React.DragEvent) => {
-    setDraggedTaskId(null);
-    e.currentTarget.classList.remove("opacity-50");
-  };
- 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
- 
-  const handleDrop = async (e: React.DragEvent, targetColumnId: string) => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData("text/plain") || draggedTaskId;
-    if (!id) return;
- 
-    // Optimistic UI update: Thay đổi state trước để tạo cảm giác phản hồi tức thì
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id ? { ...task, column_id: targetColumnId } : task
-      )
-    );
- 
-    // Lưu thay đổi vào Supabase
-    const { error } = await supabase
-      .from("tasks")
-      .update({ column_id: targetColumnId })
-      .eq("id", id);
- 
-    if (error) {
-      console.error("Lỗi khi chuyển trạng thái nhiệm vụ:", error.message);
-      alert(`Lỗi di chuyển công việc: ${error.message}`);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 10,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function onDragStart(event: DragStartEvent) {
+    if (event.active.data.current?.type === "Column") {
+      setActiveColumn(event.active.data.current.column);
+      return;
     }
-  };
+    if (event.active.data.current?.type === "Task") {
+      setActiveTask(event.active.data.current.task);
+      setOriginalTasks(tasks);
+      return;
+    }
+  }
+
+  function onDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    if (activeId === overId) return;
+
+    const isActiveTask = active.data.current?.type === "Task";
+    const isOverTask = over.data.current?.type === "Task";
+    const isOverColumn = over.data.current?.type === "Column";
+
+    if (!isActiveTask) return;
+
+    // Kéo thả Task vào Task khác
+    if (isActiveTask && isOverTask) {
+      setTasks((tasks) => {
+        const activeIndex = tasks.findIndex((t) => t.id === activeId);
+        const overIndex = tasks.findIndex((t) => t.id === overId);
+
+        if (tasks[activeIndex].column_id !== tasks[overIndex].column_id) {
+          // Chuyển Task sang cột khác
+          tasks[activeIndex].column_id = tasks[overIndex].column_id;
+          return arrayMove(tasks, activeIndex, overIndex);
+        }
+
+        return arrayMove(tasks, activeIndex, overIndex);
+      });
+    }
+
+    // Kéo thả Task vào một cột (ví dụ cột đang trống)
+    if (isActiveTask && isOverColumn) {
+      setTasks((tasks) => {
+        const activeIndex = tasks.findIndex((t) => t.id === activeId);
+        tasks[activeIndex].column_id = overId.toString();
+        return arrayMove(tasks, activeIndex, activeIndex);
+      });
+    }
+  }
+
+  async function onDragEnd(event: DragEndEvent) {
+    setActiveColumn(null);
+    setActiveTask(null);
+
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    // Đổi vị trí cột
+    if (active.data.current?.type === "Column") {
+      if (activeId === overId) return;
+      
+      const activeColumnIndex = cols.findIndex((col) => col.id === activeId);
+      const overColumnIndex = cols.findIndex((col) => col.id === overId);
+      
+      const newCols = arrayMove(cols, activeColumnIndex, overColumnIndex);
+      setCols(newCols);
+
+      // Cập nhật Database
+      const updates = newCols.map((col, index) => ({
+        id: col.id,
+        position: index,
+        title: col.title,
+        workspace_id: col.workspace_id
+      }));
+
+      const { error } = await supabase.from('columns').upsert(updates);
+      if (error) console.error("Update columns position failed:", error);
+      return;
+    }
+
+    // Cập nhật Database khi thay đổi task
+    if (active.data.current?.type === "Task") {
+      const activeTask = tasks.find((t) => t.id === activeId);
+      if (!activeTask) return;
+
+      // Lấy tất cả các task trong cột đích theo thứ tự hiển thị hiện tại (đã được update state)
+      const columnTasks = tasks.filter((t) => t.column_id === activeTask.column_id);
+      
+      // Update hàng loạt position và column_id mới cho các task trong cột
+      const updates = columnTasks.map((t, index) => 
+        supabase
+          .from("tasks")
+          .update({
+            column_id: t.column_id,
+            position: index,
+          })
+          .eq("id", t.id)
+      );
+
+      try {
+        await Promise.all(updates);
+      } catch (error) {
+        console.error("Lỗi khi cập nhật vị trí công việc:", error);
+      }
+    }
+  }
  
   // Add & Edit task handlers
   const handleSubmitTask = async (e: React.FormEvent) => {
@@ -117,7 +228,6 @@ export default function KanbanBoard({
     const activeColumnId = newColumnId || (cols[0]?.id || "");
     if (!activeColumnId) return;
     if (editingTaskId) {
-      // Optimistic update
       setTasks((prev) =>
         prev.map((t) =>
           t.id === editingTaskId
@@ -184,10 +294,9 @@ export default function KanbanBoard({
     }
  
     if (newTaskData) {
-      setTasks((prev) => [newTaskData as Task, ...prev]);
+      setTasks((prev) => [...prev, newTaskData as Task]);
       setIsModalOpen(false);
    
-      // Reset Form
       setNewTitle("");
       setNewDescription("");
       setNewPriority(TaskPriority.LOW);
@@ -245,12 +354,12 @@ export default function KanbanBoard({
       setIsColModalOpen(false);
       setNewColTitle("");
  
-      // Nếu đây là cột đầu tiên được tạo, tự động set làm cột mặc định cho form tạo task
       if (!newColumnId) {
         setNewColumnId(newColData.id);
       }
     }
   };
+
   const confirmDeleteColumn = async () => {
     if (!columnToDelete) return;
     
@@ -269,8 +378,8 @@ export default function KanbanBoard({
       alert(`Lỗi khi xóa cột: ${error.message}`);
     }
   };
+
   const handleDeleteTask = async (id: string) => {
-    // Optimistic UI update
     setTasks((prev) => prev.filter((task) => task.id !== id));
  
     const { error } = await supabase
@@ -281,29 +390,6 @@ export default function KanbanBoard({
     if (error) {
       console.error("Lỗi khi xóa nhiệm vụ:", error.message);
       alert(`Lỗi khi xóa nhiệm vụ: ${error.message}`);
-    }
-  };
- 
-  const getPriorityBadge = (priority: TaskPriority) => {
-    switch (priority) {
-      case TaskPriority.HIGH:
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-[#FDEBEC] text-[#9F2F2D] dark:bg-rose-950/20 dark:text-rose-400 border border-transparent">
-            Quan trọng
-          </span>
-        );
-      case TaskPriority.MEDIUM:
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-[#FBF3DB] text-[#956400] dark:bg-amber-950/20 dark:text-amber-400 border border-transparent">
-            Trung bình
-          </span>
-        );
-      case TaskPriority.LOW:
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-[#E1F3FE] text-[#1F6C9F] dark:bg-sky-950/20 dark:text-sky-400 border border-transparent">
-            Bình thường
-          </span>
-        );
     }
   };
  
@@ -373,131 +459,121 @@ export default function KanbanBoard({
       </div>
  
       {/* Scrollable Column Container */}
-      <div className="flex overflow-x-auto pb-6 gap-6 items-start -mx-4 px-4 md:-mx-8 md:px-8 flex-1">
-        {cols.map((column, index) => {
-          const style = columnStyles[index % columnStyles.length];
-          const columnTasks = tasks.filter((t) => t.column_id === column.id);
- 
-          return (
-            <div
-              key={column.id}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, column.id)}
-              className={`group/col flex flex-col w-[290px] sm:w-[320px] shrink-0 border rounded-xl p-4 min-h-[500px] transition-all duration-300 ${style.colorClass}`}
-            >
-              {/* Column Header */}
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-black/5 dark:border-white/5">
-                <div className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${style.dotColor}`} />
-                  <span className="font-bold text-zinc-700 dark:text-zinc-200 text-xs tracking-wide truncate max-w-[180px]">
-                    {column.title}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded ${style.badgeColor}`}>
-                    {columnTasks.length}
-                  </span>
-                  <div className="flex opacity-0 group-hover/col:opacity-100 transition-opacity gap-1">
-                    <button
-                      onClick={() => openEditColModal(column)}
-                      className="text-zinc-400 hover:text-accent p-1 rounded-md cursor-pointer"
-                      title="Sửa cột"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.83 19.13a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setColumnToDelete(column)}
-                      className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded-md cursor-pointer"
-                      title="Xóa cột"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragEnd={onDragEnd}
+      >
+        <div className="flex overflow-x-auto pb-6 gap-6 items-start -mx-4 px-4 md:-mx-8 md:px-8 flex-1">
+          <SortableContext items={columnsId} strategy={horizontalListSortingStrategy}>
+            {cols.map((column, index) => {
+              const style = columnStyles[index % columnStyles.length];
+              const columnTasks = tasks.filter((t) => t.column_id === column.id);
+              const taskIds = columnTasks.map(t => t.id);
+    
+              return (
+                <SortableColumn
+                  key={column.id}
+                  column={column}
+                  styleObj={style}
+                >
+                  <div className="flex items-center gap-2 mt-[-3.5rem] mb-4 pb-2 ml-auto z-10 w-fit">
+                    <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded ${style.badgeColor}`}>
+                      {columnTasks.length}
+                    </span>
+                    <div className="flex opacity-0 group-hover/col:opacity-100 transition-opacity gap-1">
+                      <button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => openEditColModal(column)}
+                        className="text-zinc-400 hover:text-accent p-1 rounded-md cursor-pointer"
+                        title="Sửa cột"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.83 19.13a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                        </svg>
+                      </button>
+                      <button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => setColumnToDelete(column)}
+                        className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded-md cursor-pointer"
+                        title="Xóa cột"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
- 
-              {/* Cards Container */}
-              <div className="flex flex-col gap-3 flex-1 overflow-y-auto max-h-[600px] pr-1 scrollbar-none">
-                {columnTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id)}
-                    onDragEnd={handleDragEnd}
-                    className="group bg-background dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10 rounded-xl p-4 shadow-xs hover:shadow-sm transition-all duration-200 cursor-grab active:cursor-grabbing relative"
-                  >
-                    {/* Priority Badge */}
-                    <div className="mb-3 flex items-center justify-between">
-                      {getPriorityBadge(task.priority)}
-                      <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity duration-200">
-                        <button
-                          onClick={() => openEditTaskModal(task)}
-                          className="text-zinc-400 hover:text-accent dark:hover:text-accent p-1 rounded cursor-pointer transition-colors"
-                          title="Sửa công việc"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.83 19.13a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded transition-colors cursor-pointer"
-                          title="Xóa công việc"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+
+                  <div className="flex flex-col gap-3 flex-1 overflow-y-auto max-h-[600px] pr-1 scrollbar-none">
+                    <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+                      {columnTasks.map((task) => (
+                        <SortableTask key={task.id} task={task}>
+                          <button
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => openEditTaskModal(task)}
+                            className="text-zinc-400 hover:text-accent dark:hover:text-accent p-1 rounded cursor-pointer transition-colors"
+                            title="Sửa công việc"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.83 19.13a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                            </svg>
+                          </button>
+                          <button
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded transition-colors cursor-pointer"
+                            title="Xóa công việc"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </SortableTask>
+                      ))}
+                    </SortableContext>
+                    
+                    {columnTasks.length === 0 && (
+                      <div className="flex flex-col items-center justify-center flex-1 py-12 text-center text-zinc-450 dark:text-zinc-550 border border-dashed border-black/10 dark:border-white/10 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all duration-250">
+                        <span className="text-[8px] font-mono uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Kéo thả vào đây</span>
                       </div>
-                    </div>
- 
-                    {/* Card Title */}
-                    <h3 className="font-bold text-xs text-foreground mb-1 leading-snug group-hover:text-accent transition-colors">
-                      {task.title}
-                    </h3>
- 
-                    {/* Card Description */}
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-3 leading-relaxed mb-3">
-                      {task.description}
-                    </p>
- 
-                    {/* Card Footer */}
-                    <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5 text-[8px] text-zinc-400 dark:text-zinc-550 font-mono">
-                      <span className="truncate max-w-[80px]">{task.id}</span>
-                      <span>
-                        {task.created_at ? new Date(task.created_at).toLocaleDateString("vi-VN", {
-                          day: "numeric",
-                          month: "short",
-                        }) : ""}
-                      </span>
-                    </div>
+                    )}
                   </div>
-                ))}
- 
-                {columnTasks.length === 0 && (
-                  <div className="flex flex-col items-center justify-center flex-1 py-12 text-center text-zinc-450 dark:text-zinc-550 border border-dashed border-black/10 dark:border-white/10 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all duration-250">
-                    <span className="text-[8px] font-mono uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Kéo thả vào đây</span>
-                  </div>
-                )}
+                </SortableColumn>
+              );
+            })}
+          </SortableContext>
+          {cols.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-20 w-full text-center text-zinc-400 dark:text-zinc-600 bg-background border border-dashed border-black/10 dark:border-white/10 rounded-xl">
+              <svg className="w-10 h-10 mb-4 opacity-20 text-zinc-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+              </svg>
+              <p className="font-semibold text-zinc-750 dark:text-zinc-400 text-xs">Chưa có cột công việc nào được tạo.</p>
+              <p className="text-[10px] text-zinc-500 mt-1 font-mono uppercase tracking-wider">Vui lòng tạo cột trước khi thêm công việc.</p>
+            </div>
+          )}
+        </div>
+
+        <DragOverlay>
+          {activeColumn ? (
+            <div className={`flex flex-col w-[290px] sm:w-[320px] shrink-0 border rounded-xl p-4 min-h-[500px] bg-zinc-50/50 dark:bg-zinc-900/20 border-black/5 dark:border-white/5`}>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="font-bold text-zinc-700 dark:text-zinc-200 text-xs tracking-wide truncate max-w-[180px]">
+                  {activeColumn.title}
+                </span>
               </div>
             </div>
-          );
-        })}
-        {cols.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center py-20 w-full text-center text-zinc-400 dark:text-zinc-600 bg-background border border-dashed border-black/10 dark:border-white/10 rounded-xl">
-            <svg className="w-10 h-10 mb-4 opacity-20 text-zinc-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-            </svg>
-            <p className="font-semibold text-zinc-750 dark:text-zinc-400 text-xs">Chưa có cột công việc nào được tạo.</p>
-            <p className="text-[10px] text-zinc-500 mt-1 font-mono uppercase tracking-wider">Vui lòng tạo cột trước khi thêm công việc.</p>
-          </div>
-        )}
-      </div>
- 
+          ) : activeTask ? (
+            <div className="group bg-background dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 rounded-xl p-4 shadow-xl cursor-grabbing">
+              <h3 className="font-bold text-xs text-foreground mb-1 leading-snug">{activeTask.title}</h3>
+              <p className="text-[11px] text-zinc-500 line-clamp-3 mb-3">{activeTask.description}</p>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
       {/* Modal - Create Task */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-xs">
