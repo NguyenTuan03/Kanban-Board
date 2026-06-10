@@ -86,7 +86,7 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-12 py-6">
       {/* Dashboard Sub-Header */}
-      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 pb-6 border-b border-border-muted">
+      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 pb-6 border-b border-black/5 dark:border-white/5">
         <div>
           <h3 className="text-3xl font-normal font-serif tracking-tight leading-none italic">
             Không gian làm việc
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
           })}
         </div>
       ) : (
-        <div className="text-center py-20 border border-dashed border-border-muted rounded-xl text-zinc-400 dark:text-zinc-600 max-w-md mx-auto mt-8">
+        <div className="text-center py-20 border border-dashed border-black/10 dark:border-white/10 rounded-xl text-zinc-400 dark:text-zinc-600 max-w-md mx-auto mt-8">
           <svg
             className="w-8 h-8 mx-auto mb-4 opacity-40 text-zinc-400"
             fill="none"

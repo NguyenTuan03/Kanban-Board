@@ -143,7 +143,7 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
   return (
     <div className="flex flex-col flex-1 space-y-6">
       {/* Workspace Header Info */}
-      <div className="pb-4 border-b border-border-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="pb-4 border-b border-black/5 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-500 block mb-1">
             Không gian làm việc

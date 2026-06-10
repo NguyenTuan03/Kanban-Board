@@ -51,13 +51,13 @@ export default function DashboardShell({
       {/* Sidebar bên trái */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border-muted flex flex-col shrink-0 transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-black/5 dark:border-white/5 flex flex-col shrink-0 transition-transform duration-300 ease-in-out
           lg:static lg:translate-x-0
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         {/* Logo Area */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-border-muted">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-black/5 dark:border-white/5">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded bg-foreground text-background font-bold shadow-none text-xs">
               <svg
@@ -131,7 +131,7 @@ export default function DashboardShell({
                     <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded text-[9px] font-bold font-mono border transition-colors ${
                       isActive
                         ? "bg-foreground text-background border-transparent"
-                        : "bg-background text-zinc-500 border-border-muted"
+                        : "bg-background text-zinc-500 border-black/5 dark:border-white/5"
                     }`}>
                       {ws.name.charAt(0).toUpperCase()}
                     </span>
@@ -147,7 +147,7 @@ export default function DashboardShell({
       {/* Cột nội dung bên phải */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-16 border-b border-border-muted bg-background flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 transition-all duration-300">
+        <header className="h-16 border-b border-black/5 dark:border-white/5 bg-background flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 transition-all duration-300">
           <div className="flex items-center">
             {/* Nút Hamburger Menu trên Mobile */}
             <button
@@ -171,7 +171,7 @@ export default function DashboardShell({
             {/* Nút chuyển đổi Theme */}
             <ThemeToggle />
 
-            <div className="flex items-center gap-2 sm:gap-2.5 px-2.5 py-1.5 bg-background rounded-lg border border-border-muted max-w-[180px] sm:max-w-none">
+            <div className="flex items-center gap-2 sm:gap-2.5 px-2.5 py-1.5 bg-background rounded-lg border border-black/5 dark:border-white/5 max-w-[180px] sm:max-w-none">
               <div className="h-5 w-5 rounded bg-foreground flex items-center justify-center text-[9px] font-bold text-background font-mono shrink-0">
                 {avatarLetter}
               </div>
@@ -184,7 +184,7 @@ export default function DashboardShell({
             <form action={signOutAction}>
               <button
                 type="submit"
-                className="flex h-7 items-center justify-center rounded border border-border-muted hover:border-rose-500/20 hover:bg-rose-500/5 hover:text-rose-600 dark:hover:text-rose-400 text-zinc-500 dark:text-zinc-400 font-semibold text-xs px-2.5 transition-all duration-200 cursor-pointer active:scale-95"
+                className="flex h-7 items-center justify-center rounded border border-black/5 dark:border-white/5 hover:border-rose-500/20 hover:bg-rose-500/5 hover:text-rose-600 dark:hover:text-rose-400 text-zinc-500 dark:text-zinc-400 font-semibold text-xs px-2.5 transition-all duration-200 cursor-pointer active:scale-95"
               >
                 Đăng xuất
               </button>
