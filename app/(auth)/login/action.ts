@@ -1,18 +1,15 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getBaseUrl } from "@/utils/url";
 
 export async function signInWithGitHub() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  // Lấy baseUrl tự động từ Request Headers của Next.js để tránh cấu hình sai biến env
-  const headersList = await headers();
-  const host = headersList.get("host");
-  const protocol = host?.includes("localhost") ? "http" : "https";
-  const baseUrl = `${protocol}://${host}`;
+  const baseUrl = await getBaseUrl();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "github",
@@ -36,11 +33,7 @@ export async function signInWithFacebook() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  // Lấy baseUrl tự động từ Request Headers của Next.js để tránh cấu hình sai biến env
-  const headersList = await headers();
-  const host = headersList.get("host");
-  const protocol = host?.includes("localhost") ? "http" : "https";
-  const baseUrl = `${protocol}://${host}`;
+  const baseUrl = await getBaseUrl();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "facebook",
@@ -64,10 +57,7 @@ export async function signInWithGoogle() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  const headersList = await headers();
-  const host = headersList.get("host");
-  const protocol = host?.includes("localhost") ? "http" : "https";
-  const baseUrl = `${protocol}://${host}`;
+  const baseUrl = await getBaseUrl();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
