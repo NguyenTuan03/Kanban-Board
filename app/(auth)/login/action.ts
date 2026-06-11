@@ -76,6 +76,29 @@ export async function signInWithGoogle() {
   }
 }
 
+export async function signInWithSpotify() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const baseUrl = await getBaseUrl();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "spotify",
+    options: {
+      redirectTo: `${baseUrl}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    console.error("Error signing in with Spotify:", error);
+    return redirect("/login?error=true");
+  }
+
+  if (data.url) {
+    return redirect(data.url);
+  }
+}
+
 export async function signOut() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);

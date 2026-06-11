@@ -1,5 +1,5 @@
 import React from "react";
-import { signInWithGitHub, signInWithFacebook, signInWithGoogle } from "./action";
+import { signInWithGitHub, signInWithFacebook, signInWithGoogle, signInWithSpotify } from "./action";
 import ThemeToggle from "@/components/theme/theme-toggle";
 
 interface PageProps {
@@ -120,6 +120,20 @@ export default async function LoginPage({ searchParams }: PageProps) {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             Tiếp tục với Google
+          </button>
+        </form>
+
+        {/* Spotify Login Button */}
+        <form action={signInWithSpotify} className="space-y-4 mt-2">
+          <button
+            type="submit"
+            className="w-full flex h-10 items-center justify-center gap-2.5 rounded-lg bg-[#1DB954] text-white hover:bg-[#1DB954]/90 font-semibold text-xs transition-all duration-200 active:scale-[0.98] cursor-pointer shadow-none"
+          >
+            {/* Spotify SVG Icon */}
+            <svg className="h-4.5 w-4.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.434-5.305-1.76-8.786-.965-.336.077-.67-.134-.747-.47-.077-.337.134-.67.47-.748 3.812-.87 7.08-.496 9.712 1.11.293.18.386.563.208.857.001 0 0 .001.001.006zm1.225-2.72c-.227.367-.707.487-1.074.26-2.69-1.654-6.793-2.133-9.972-1.168-.413.125-.847-.107-.973-.52-.125-.413.107-.847.52-.973 3.636-1.102 8.147-.568 11.238 1.328.367.226.488.707.261 1.073zm.105-2.81c-3.225-1.915-8.54-2.093-11.62-1.158-.495.15-1.01-.128-1.16-.623-.15-.495.128-1.01.623-1.16 3.555-1.08 9.425-.875 13.137 1.328.446.265.592.84.327 1.286-.265.447-.84.593-1.286.327h-.021z"/>
+            </svg>
+            Tiếp tục với Spotify
           </button>
         </form>
 
