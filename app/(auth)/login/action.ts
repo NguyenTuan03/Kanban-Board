@@ -60,6 +60,32 @@ export async function signInWithFacebook() {
   }
 }
 
+export async function signInWithGoogle() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const headersList = await headers();
+  const host = headersList.get("host");
+  const protocol = host?.includes("localhost") ? "http" : "https";
+  const baseUrl = `${protocol}://${host}`;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${baseUrl}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    console.error("Error signing in with Google:", error);
+    return redirect("/login?error=true");
+  }
+
+  if (data.url) {
+    return redirect(data.url);
+  }
+}
+
 export async function signOut() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
